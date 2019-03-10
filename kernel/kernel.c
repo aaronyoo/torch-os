@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
+#include <tty.h>
 
 struct _idt_entry {
 	uint16_t baseLo;
@@ -21,8 +22,6 @@ typedef struct _idt_ptr idt_ptr;
 static idt_entry idt[IDT_ENTRIES];
 static idt_ptr idtr;
 
-void print(char *s);
-
 static void idt_install() {
 	__asm__(
 		"lidt (idtr)\n"
@@ -30,8 +29,8 @@ static void idt_install() {
 }
 
 void i86_default_handler() {
-	print("Unhandled Exception\n");
-	print("Hanging...\n");
+	terminal_print("Unhandled Exception\n");
+	terminal_print("Hanging...\n");
 	for (;;);
 }
 
@@ -41,7 +40,7 @@ void install_handler(uint8_t n, uint32_t base, uint16_t sel, uint8_t flags) {
 	idt[n].sel = sel;
 	idt[n].res = 0;
 
-	// need to | 0x60 later
+	// need to | 0x60 later when I create a userspace
 	idt[n].flags = flags;
 }
 
@@ -58,27 +57,9 @@ int init_idt() {
 	idt_install();
 }
 
-// int i86_install_ir(uint32_t i, uint16_t flags, uint16_t sel, I)
-
-// Temporary Screen Printing Code
-short* vga_ptr = (short*)0xb8000;
-const short color = 0x0F00;
-
-void puts(char c) {
-	*vga_ptr = color | c;
-	vga_ptr++;
-}
-
-void print(char *s) {
-	while (*s != '\0' && *s != '\n') {
-		puts(*s);
-		s++;
-	}
-}
-
-void kernel_main()
-{
-	print("About to cause an interrupt..\n");
+void kernel_main() {
+	terminal_initialize();
+	terminal_print("About to cause an interrupt..\n");
 	init_idt();
 	__asm__("int3");
 }

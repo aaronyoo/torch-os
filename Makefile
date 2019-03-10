@@ -17,7 +17,7 @@ run: all
 	qemu-system-i386 -fda $(DESTDIR)/kernel.bin
 
 build: boot.o linker.ld
-	i386-elf-gcc -I lib/includes $(C_SOURCES) $(DESTDIR)/boot.o -o $(DESTDIR)/kernel.bin -nostdlib -ffreestanding -T linker.ld
+	i386-elf-gcc -I lib/includes -I kernel/includes $(C_SOURCES) $(DESTDIR)/boot.o -o $(DESTDIR)/kernel.bin -nostdlib -ffreestanding -T linker.ld
 
 boot.o:
 	nasm -f elf32 $(BOOTDIR)/boot.asm -o $(DESTDIR)/boot.o
