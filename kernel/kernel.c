@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stddef.h>
+#include <string.h>
 
 struct _idt_entry {
 	uint16_t baseLo;
@@ -26,13 +27,6 @@ static void idt_install() {
 	__asm__(
 		"lidt (idtr)\n"
 	);
-}
-
-void* memset(void* bufptr, int value, size_t size) {
-	unsigned char* buf = (unsigned char*) bufptr;
-	for (size_t i = 0; i < size; i++)
-		buf[i] = (unsigned char) value;
-	return bufptr;
 }
 
 void i86_default_handler() {
