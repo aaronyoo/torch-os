@@ -4,7 +4,7 @@
 #include <tty.h>
 #include <idt.h>
 
-void kernel_main() {
+void kmain() {
 	terminal_initialize();
 	terminal_print("About to cause an interrupt..\n");
 	init_idt();

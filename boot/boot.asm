@@ -87,8 +87,8 @@ bits 32
 ;=====================
 boot2:
 	mov esp,kernel_stack_top
-	extern kernel_main
-	call kernel_main
+	extern kmain
+	call kmain
 	cli
 	hlt
 
