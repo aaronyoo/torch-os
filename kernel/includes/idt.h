@@ -1,3 +1,6 @@
+#ifndef __IDT_H__
+#define __IDT_H__
+
 #include <stdint.h>
 
 struct _idt_entry {
@@ -19,6 +22,6 @@ typedef struct _idt_ptr idt_ptr;
 static idt_entry idt[IDT_ENTRIES];
 static idt_ptr idtr;
 
-
-
 int init_idt();
+
+#endif

@@ -5,7 +5,7 @@
 #include <idt.h>
 #include <pic.h>
 
-void kmain() {
+void kmain(void) {
 	terminal_initialize();
 	terminal_print("About to cause an interrupt..\n");
 	init_pic();
