@@ -2,7 +2,7 @@
 C_SOURCES = $(wildcard $(KERNELDIR)/*.c lib/*/*.c)
 HEADERS = $(wildcard $(KERNELDIR)/*.h)
 
-DESTDIR = build
+BUILDDIR = build
 KERNELDIR = kernel
 
 CFLAGS := -nostdlib -ffreestanding -02 -g -Wall -Wextra
@@ -14,13 +14,13 @@ all: build
 
 # Run the operating system on qemu
 run: all
-	qemu-system-i386 -kernel $(DESTDIR)/kernel.bin
+	qemu-system-i386 -serial file:$(BUILDDIR)/serial.log -kernel $(BUILDDIR)/kernel.bin
 
 build: boot.o linker.ld
-	i386-elf-gcc -I lib/includes -I kernel/includes $(C_SOURCES) $(DESTDIR)/boot.o -o $(DESTDIR)/kernel.bin -nostdlib -ffreestanding -T linker.ld
+	i386-elf-gcc -I lib/includes -I kernel/includes $(C_SOURCES) $(BUILDDIR)/boot.o -o $(BUILDDIR)/kernel.bin -nostdlib -ffreestanding -T linker.ld
 
 boot.o:
-	nasm -f elf32 $(KERNELDIR)/boot.asm -o $(DESTDIR)/boot.o
+	nasm -f elf32 $(KERNELDIR)/boot.asm -o $(BUILDDIR)/boot.o
 
 clean:
-	rm -rf $(DESTDIR)/*
+	rm -rf $(BUILDDIR)/*
