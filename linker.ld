@@ -1,8 +1,7 @@
-ENTRY(boot)
-OUTPUT_FORMAT("binary")
+ENTRY(start)
 SECTIONS {
-	. = 0x7c00;
-	.text :
+	. = 0x00100000;
+	.text ALIGN (0x1000) :
 	{
         *(.boot)
 		*(.text)
