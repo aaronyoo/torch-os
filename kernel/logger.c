@@ -22,10 +22,9 @@ static void print_serial(const char *s);
 
 void init_logger() {
     init_serial_com1();
-    log("Initializing logger...");
 }
 
-void log(const char* format, ...) {
+void logf(const char* format, ...) {
     va_list parameters;
     va_start(parameters, format);
 

@@ -8,8 +8,12 @@
 #include <logger.h>
 
 void kmain(void) {
-   init_logger();
+   init_logger();  // initialize the logger to log to serial port
+   logf("Logger initialized\n");
+
 	terminal_initialize();
+   logf("Terminal initialized\n");
+
 	terminal_print("About to cause an interrupt..\n");
 	init_pic();
 	init_idt();
