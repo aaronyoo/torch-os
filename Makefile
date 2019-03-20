@@ -1,5 +1,6 @@
 # Automatically generate lists of sources using wildcards.
 C_SOURCES = $(wildcard $(KERNELDIR)/*.c lib/*/*.c)
+ASM_SOURCES = $(KERNELDIR)/utility.asm
 HEADERS = $(wildcard $(KERNELDIR)/*.h)
 
 BUILDDIR = build
@@ -16,11 +17,12 @@ all: build
 run: all
 	qemu-system-i386 -serial file:$(BUILDDIR)/serial.log -kernel $(BUILDDIR)/kernel.bin
 
-build: boot.o linker.ld
-	i386-elf-gcc -I lib/includes -I kernel/includes $(C_SOURCES) $(BUILDDIR)/boot.o -o $(BUILDDIR)/kernel.bin -nostdlib -ffreestanding -T linker.ld
+build: asm_objects linker.ld
+	i386-elf-gcc -I lib/includes -I kernel/includes $(C_SOURCES) $(BUILDDIR)/*.o -o $(BUILDDIR)/kernel.bin -nostdlib -ffreestanding -T linker.ld
 
-boot.o:
+asm_objects:
 	nasm -f elf32 $(KERNELDIR)/boot.asm -o $(BUILDDIR)/boot.o
+	nasm -f elf32 $(KERNELDIR)/utility.asm -o $(BUILDDIR)/utility.o
 
 clean:
 	rm -rf $(BUILDDIR)/*
