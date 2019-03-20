@@ -12,7 +12,7 @@ void kmain(void) {
    init_logger();
    logf("Logger initialized\n");
 
-	terminal_initialize();
+	init_terminal();
    logf("Terminal initialized\n");
 
    init_gdt();

@@ -17,7 +17,7 @@ static uint16_t vga_char(uint8_t character) {
     return (uint16_t) character | (terminal_color << 8);
 }
 
-void terminal_initialize(void) {
+void init_terminal(void) {
     terminal_row = 0;
     terminal_column = 0;
     terminal_color =  7; // light grey
