@@ -18,8 +18,11 @@ void kmain(void) {
    init_gdt();
    logf("GDT initialized\n");
 
-	terminal_print("About to cause an interrupt..\n");
 	init_pic();
-	init_idt();
+   logf("PIC initialized\n");
+
+   init_idt();
+
+   terminal_print("About to cause an interrupt..\n");
 	__asm__("int3");
 }
