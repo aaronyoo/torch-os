@@ -42,6 +42,10 @@ void logf(const char* format, ...) {
             const char* str = va_arg(parameters, const char*);
             size_t len = strlen(str);
             print_serial(str);
+        } else if (*format == 'c') {
+            format++;
+            char c = (char) va_arg(parameters, int); // char is promoted to int
+            put_serial(c);
         }
     }
 

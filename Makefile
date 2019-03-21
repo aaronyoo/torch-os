@@ -23,6 +23,7 @@ build: asm_objects linker.ld
 asm_objects:
 	nasm -f elf32 $(KERNELDIR)/boot.asm -o $(BUILDDIR)/boot.o
 	nasm -f elf32 $(KERNELDIR)/utility.asm -o $(BUILDDIR)/utility.o
+	nasm -f elf32 $(KERNELDIR)/interrupts.asm -o $(BUILDDIR)/interrupts.o 
 
 clean:
 	rm -rf $(BUILDDIR)/*

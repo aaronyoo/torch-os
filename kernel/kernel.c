@@ -22,7 +22,8 @@ void kmain(void) {
    logf("PIC initialized\n");
 
    init_idt();
+   logf("IDT initialized\n");
 
-   terminal_print("About to cause an interrupt..\n");
-	__asm__("int3");
+   __asm__ volatile("int $0x3");
+	__asm__ volatile("int $0x4");
 }
