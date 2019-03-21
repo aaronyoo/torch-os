@@ -95,7 +95,7 @@ static void print_serial_unsigned_decimal(uint32_t n) {
     // TODO: is there a better solution to this case??
     // I am assuming that there is only 15 digits in the worst case
     // for an unsigned decimal number of size uint32_t.
-    char s[16];
+    char s[25];
     int pos = 0;
     while (n > 0) {
         s[pos] = (n % 10) + '0'; // convert to ascii
