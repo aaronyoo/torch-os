@@ -24,6 +24,7 @@ asm_objects:
 	nasm -f elf32 $(KERNELDIR)/boot.asm -o $(BUILDDIR)/boot.o
 	nasm -f elf32 $(KERNELDIR)/utility.asm -o $(BUILDDIR)/utility.o
 	nasm -f elf32 $(KERNELDIR)/interrupts.asm -o $(BUILDDIR)/interrupts.o 
+	nasm -f elf32 $(KERNELDIR)/logger.asm -o $(BUILDDIR)/logger.o
 
 clean:
 	rm -rf $(BUILDDIR)/*

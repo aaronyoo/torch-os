@@ -14,10 +14,12 @@
 #include <tty.h>
 
 #define COM1_BASE 0x3f8   /* COM1 */
+
+extern void print_serial_hex(const uint32_t n);
  
 static void init_serial_com1();
 static int is_transmit_empty();
-static void put_serial(const char a);
+void put_serial(const char a);
 static void print_serial(const char *s);
 
 void init_logger() {
@@ -37,15 +39,21 @@ void logf(const char* format, ...) {
 
         format++;  // skip past '%'
 
-        if (*format == 's') {
+        if (*format == 's') { // string
             format++;
             const char* str = va_arg(parameters, const char*);
             size_t len = strlen(str);
             print_serial(str);
-        } else if (*format == 'c') {
+        } else if (*format == 'c') { // character
             format++;
             char c = (char) va_arg(parameters, int); // char is promoted to int
             put_serial(c);
+        } else if (*format == 'x') { // hex number
+            format++;
+            uint32_t num = va_arg(parameters, uint32_t);
+            put_serial('0');
+            put_serial('x');
+            print_serial_hex(num);
         }
     }
 
@@ -66,7 +74,7 @@ static int is_transmit_empty() {
    return inb(COM1_BASE + 5) & 0x20;
 }
  
-static void put_serial(char a) {
+void put_serial(char a) {
    while (is_transmit_empty() == 0);   // Stall while transit is filled
  
    outb(COM1_BASE,a);

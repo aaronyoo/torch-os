@@ -24,6 +24,10 @@ void kmain(void) {
    init_idt();
    logf("IDT initialized\n");
 
+   logf("%x\n", 3);
+   logf("%x\n", 6);
+   logf("%x\n", 16);
+   logf("%x\n", 1358395);
    __asm__ volatile("int $0x3");
 	__asm__ volatile("int $0x4");
 }
