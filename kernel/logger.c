@@ -21,6 +21,7 @@ static void init_serial_com1();
 static int is_transmit_empty();
 void put_serial(const char a);
 static void print_serial(const char *s);
+static void print_serial_unsigned_decimal(uint32_t n);
 
 void init_logger() {
     init_serial_com1();
@@ -54,6 +55,10 @@ void logf(const char* format, ...) {
             put_serial('0');
             put_serial('x');
             print_serial_hex(num);
+        } else if (*format == 'u') { // unsigned decimal
+            format++;
+            uint32_t num = va_arg(parameters, uint32_t);
+            print_serial_unsigned_decimal(num);
         }
     }
 
@@ -84,4 +89,22 @@ static void print_serial(const char *s) {
     for (size_t i = 0; i < strlen(s); i++) {
         put_serial(s[i]);
     }
+}
+
+static void print_serial_unsigned_decimal(uint32_t n) {
+    // TODO: is there a better solution to this case??
+    // I am assuming that there is only 15 digits in the worst case
+    // for an unsigned decimal number of size uint32_t.
+    char s[16];
+    int pos = 0;
+    while (n > 0) {
+        s[pos] = (n % 10) + '0'; // convert to ascii
+        n /= 10;
+        pos++;
+    }
+    pos = '\0';
+
+    // now the number will be reversed so we need to reverse it again
+    strrev(s);
+    print_serial(s);
 }

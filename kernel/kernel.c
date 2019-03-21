@@ -24,6 +24,10 @@ void kmain(void) {
    init_idt();
    logf("IDT initialized\n");
 
+   char name[10] = "aaron";
+   strrev(name);
+   logf("%s\n", name);
+   logf("%u\n", 1358395);
    logf("%x\n", 3);
    logf("%x\n", 6);
    logf("%x\n", 16);
