@@ -7,6 +7,7 @@
 #include <io.h>
 #include <logger.h>
 #include <gdt.h>
+#include <timer.h>
 
 void kmain(void) {
    init_logger();
@@ -24,14 +25,13 @@ void kmain(void) {
    init_idt();
    logf("IDT initialized\n");
 
-   char name[10] = "aaron";
-   strrev(name);
-   logf("%s\n", name);
-   logf("%u\n", 1358395);
-   logf("%x\n", 3);
-   logf("%x\n", 6);
-   logf("%x\n", 16);
-   logf("%x\n", 1358395);
-   __asm__ volatile("int $0x3");
-	__asm__ volatile("int $0x4");
+   init_timer(50);
+   logf("Timer initialized\n");
+
+   __asm__ volatile("int $0x2");
+   __asm__ volatile("sti");
+
+   while(1) {
+      
+   }
 }
