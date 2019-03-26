@@ -97,6 +97,15 @@ static void print_serial_unsigned_decimal(uint32_t n) {
     // for an unsigned decimal number of size uint32_t.
     char s[25];
     int pos = 0;
+
+    // Treat 0 as a special case
+    if (n == 0) {
+        s[0] = '0';
+        s[1] = '\0';
+        print_serial(s);
+        return;
+    }
+
     while (n > 0) {
         s[pos] = (n % 10) + '0'; // convert to ascii
         n /= 10;
