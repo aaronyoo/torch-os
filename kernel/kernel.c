@@ -8,6 +8,7 @@
 #include <logger.h>
 #include <gdt.h>
 #include <timer.h>
+#include <keyboard.h>
 
 void kmain(void) {
    init_logger();
@@ -28,7 +29,11 @@ void kmain(void) {
    init_timer(50);
    logf("Timer initialized\n");
 
-   __asm__ volatile("int $0x2");
+   logf("%u\n", 32); // this is a big bug
+
+   init_keyboard();
+   logf("Keyboard intialized\n");
+
    __asm__ volatile("sti");
 
    while(1) {

@@ -15,6 +15,8 @@
  
 #include <pic.h>
 #include <io.h>
+#include <logger.h>
+
 
 void pic_send_eoi(unsigned char irq)
 {
@@ -23,6 +25,15 @@ void pic_send_eoi(unsigned char irq)
  
 	outb(PIC1_COMMAND,PIC_EOI);
 }
+
+// void dummy_function(void) {
+// 	logf("A");
+// 	logf("A");
+// 	logf("A");
+// 	logf("A");
+// 	logf("A");
+// 	logf("A");
+// }
 
 void init_pic() {
 
@@ -50,8 +61,8 @@ void init_pic() {
 	outb(PIC2_DATA, ICW4_8086);
 	io_wait();
 
-	outb(PIC1_DATA, 0x0);
+	outb(PIC1_DATA, 0xfd);
 	io_wait();
-	outb(PIC2_DATA, 0x0);
+	outb(PIC2_DATA, 0xff);
 	io_wait();
 }
