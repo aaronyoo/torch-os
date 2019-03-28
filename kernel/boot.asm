@@ -10,6 +10,7 @@ MAGIC equ 0x1BADB002                ; Multiboot Magic
 FLAGS equ 0                         ; We don't need any flags right now
 CHECKSUM equ -(MAGIC + FLAGS)       ; checksum + magic + flags = 0
 
+section .multiboot
 align 4
     dd MAGIC
     dd FLAGS

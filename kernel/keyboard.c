@@ -27,20 +27,20 @@ char keymap[KEYMAP_SIZE];
 //     terminal_putchar(c);
 // }
 
-// void process_scan_code(uint8_t scan_code) {
-//     // /* Convert the scan code into a character */
-//     // if (keymap[scan_code] == 0) {
-//     //     logf("[PANIC] Unhandled keypress: %x", scan_code);
-//     //     while(1); // TODO: change to panic
-//     // }
+void process_scan_code(uint8_t scan_code) {
+    // /* Convert the scan code into a character */
+    // if (keymap[scan_code] == 0) {
+    //     logf("[PANIC] Unhandled keypress: %x", scan_code);
+    //     while(1); // TODO: change to panic
+    // }
 
-//     // /* It's safe to convert to a character */
-//     // char c = keymap[scan_code];
+    // /* It's safe to convert to a character */
+    // char c = keymap[scan_code];
 
-//     // // TODO: add to the character buffer
-//     // // But for now, let's just print to the screen
-//     // terminal_putchar(c);
-// }
+    // // TODO: add to the character buffer
+    // // But for now, let's just print to the screen
+    // terminal_putchar(c);
+}
 
 void keyboard_handler(context_t* context) {
     /* Read in the keypress. Note that this reading step is required
