@@ -110,6 +110,7 @@ void init_keyboard() {
     keymap[0][0x34] = '.';
     keymap[0][0x27] = ';';
 
+    /* Shift key is pressed */
     keymap[1][0x1E] = 'A';
     keymap[1][0x30] = 'B';
     keymap[1][0x2E] = 'C';

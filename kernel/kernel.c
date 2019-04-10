@@ -29,7 +29,8 @@ void kmain(void) {
    init_timer(50);
    logf("Timer initialized\n");
 
-   logf("%u\n", 32); // this is a big bug
+   logf("%u\n", 32); // TODO: this is a big bug
+   // I cannot believe that I can't handle this correctly
 
    init_keyboard();
    logf("Keyboard intialized\n");
