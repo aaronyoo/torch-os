@@ -9,6 +9,7 @@
 #include <gdt.h>
 #include <timer.h>
 #include <keyboard.h>
+#include <memory.h>
 
 void kmain(void) {
    init_logger();
@@ -34,6 +35,9 @@ void kmain(void) {
 
    init_keyboard();
    logf("Keyboard intialized\n");
+
+   init_higher_half();
+   logf("Initialized higher half\n");
 
    __asm__ volatile("sti");
 
