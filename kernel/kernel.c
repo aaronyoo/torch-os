@@ -10,13 +10,47 @@
 #include <timer.h>
 #include <keyboard.h>
 #include <memory.h>
+#include "multiboot.h"
 
-void kmain(void) {
+void kmain(multiboot_info_t* mbd, uint32_t magic) {
    init_logger();
    logf("Logger initialized\n");
 
-	init_terminal();
-   logf("Terminal initialized\n");
+   /* Check if the bootloader magic is correct */
+   if (magic != MULTIBOOT_BOOTLOADER_MAGIC) {
+      logf("Magic is incorrect...: %x\n", magic);
+      while(1); // TODO: change to panic
+   }
+
+   logf("mbd->flags: %x\n", mbd->flags);
+   if (mbd->flags & MULTIBOOT_INFO_MEMORY) {
+      logf("mem_lower = %x\n", mbd->mem_lower);
+      logf("mem_upper = %x\n", mbd->mem_upper);
+   }
+
+   /* Log a map of the regions of memory */
+   if (mbd->flags & MULTIBOOT_INFO_MEM_MAP) {
+      logf("mmap_addr = %x, mmap_length = %x\n", mbd->mmap_addr, mbd->mmap_length);
+      multiboot_memory_map_t* map;
+
+      for (map = (multiboot_memory_map_t*) mbd->mmap_addr;
+            (uint32_t) map < (mbd->mmap_addr + mbd->mmap_length);
+            map = (multiboot_memory_map_t*)((uint32_t) map + map->size + sizeof(map->size))) 
+      {
+         logf("base_addr_high = %x, base_addr_low = %x, length_high = %x, length_low = %x, type = %x\n",
+               map->addr_upper,
+               map->addr_lower,
+               map->len_upper,
+               map->len_lower,
+               map->type);
+      }
+
+   }
+
+   if (mbd->flags & (1 << 7)) {
+      /* Safely read the drive regions */
+      // TODO
+   }
 
    init_gdt();
    logf("GDT initialized\n");
@@ -27,17 +61,17 @@ void kmain(void) {
    init_idt();
    logf("IDT initialized\n");
 
-   init_timer(50);
-   logf("Timer initialized\n");
+   // init_paging();
+   // logf("Paging initialized\n");
 
-   logf("%u\n", 32); // TODO: this is a big bug
+   logf("%x\n", 32); // TODO: this is a big bug
    // I cannot believe that I can't handle this correctly
+
+   init_terminal();
+   logf("Terminal initialized\n");
 
    init_keyboard();
    logf("Keyboard intialized\n");
-
-   init_higher_half();
-   logf("Initialized higher half\n");
 
    __asm__ volatile("sti");
 

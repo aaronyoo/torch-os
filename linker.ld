@@ -1,6 +1,7 @@
 ENTRY(start)
+KERNEL_START_PMA = 0x00100000;
 SECTIONS {
-	. = 0x00100000;
+	. = KERNEL_START_PMA;
 	.text ALIGN (0x1000) :
 	{
         *(.multiboot)

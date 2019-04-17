@@ -17,11 +17,14 @@ all: build
 run: all
 	qemu-system-i386  -serial stdio -kernel $(BUILDDIR)/kernel.bin
 
-debug: all
+monitor: all
 	qemu-system-i386  -monitor stdio -kernel $(BUILDDIR)/kernel.bin
 
+debug: all
+	qemu-system-i386  -s -S -monitor stdio -kernel $(BUILDDIR)/kernel.bin
+
 build: asm_objects linker.ld
-	i386-elf-gcc -I lib/includes -I kernel/includes $(C_SOURCES) $(BUILDDIR)/*.o -o $(BUILDDIR)/kernel.bin -nostdlib -ffreestanding -T linker.ld
+	i386-elf-gcc -g -I lib/includes -I kernel/includes $(C_SOURCES) $(BUILDDIR)/*.o -o $(BUILDDIR)/kernel.bin -nostdlib -ffreestanding -T linker.ld
 
 asm_objects:
 	nasm -f elf32 $(KERNELDIR)/boot.asm -o $(BUILDDIR)/boot.o

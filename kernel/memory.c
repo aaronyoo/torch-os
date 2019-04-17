@@ -1,26 +1,52 @@
-#include <memory.h>
+#include "memory.h"
 #include <stdint.h>
+#include "logger.h"
+#include <stddef.h>
 
 extern void load_page_directory(uint32_t);
 extern void enable_paging();
 
-/* Initializes and jumps to the higher half kernel */
-void init_higher_half(void) {
+#define KERNEL_START_PMA 0x00100000
+#define KERNEL_START_VMA 0xC0100000
+#define AL
+
+void boot_map_page_ia32(uint32_t*, uint32_t, uint32_t);
+
+/* Initializes paging */
+void init_paging(void) {
     /* Clear the page directory by marking not present */
     for (unsigned int i = 0; i < 1024; i++) {
         page_directory[i] = 0x00000002;
     }
-
-    /* Identity map the first 4 MiB */
-    /* Might need to map more if the kernel grows too much */
-    for (unsigned int i = 0; i < 1024; i++) {
-        init_page_table[i] = (i * 4096) | 3; // supervisor, r/w, present
-    }
-
+ 
     /* Put initial page table in page directory */
     page_directory[0] = ((uint32_t) init_page_table) | 3;  // supervisor, r/w, present
+
+    /* Identity map ap ~2 MB after the starting point of the kernel */
+    /* This maps the kernel so we don't immediately crash */
+    for (unsigned int i = 0; i < 512; i++) {
+        boot_map_page_ia32(page_directory, (i * 4096) + KERNEL_START_PMA, (i * 4096) + KERNEL_START_PMA);
+    }
+
+    /* Map a pool of memory for the memory allocator */
 
     /* Load the page directory and initalize paging */
     load_page_directory((uint32_t) page_directory);
     enable_paging();
+}
+
+void boot_map_page_ia32(uint32_t* kernel_page_directory, uint32_t virtual_address, uint32_t physical_address) {
+    uint32_t page_directory_index = virtual_address >> 22;
+    uint32_t page_directory_entry = *(kernel_page_directory + page_directory_index);
+    if (!(page_directory_entry & 0x1)) {
+        logf("[PANIC] Trying to access page index: %x", page_directory_index);
+        logf("Address %x", virtual_address);
+        logf("[PANIC] Page Table not Present\n");
+        while (1);
+    }
+
+    uint32_t* page_table = (uint32_t *) (page_directory_entry & 0xFFFFF000);
+    uint32_t page_table_index = virtual_address >> 12 & 0x03FF;
+
+    page_table[page_table_index] = physical_address | 3; // supervisor, r/w, present
 }

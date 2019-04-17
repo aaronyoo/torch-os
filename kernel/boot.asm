@@ -34,9 +34,9 @@ start:
     cld                             ; Clear the direction flag for string operations
     mov esp, kernel_stack_top       ; Set up the stack
 
-    ; TODO: I have seen some kernels use this space to push the
-    ; Multiboot magic and the header address. I am not sure exactly
-    ; what those values are used for in kmain, but maybe consider this.
+    push eax;                       ; Push multiboot header
+    push ebx;                       ; Push multiboot magic
+
 
     extern kmain
     call kmain                      ; Jump to kmain (never to return)
