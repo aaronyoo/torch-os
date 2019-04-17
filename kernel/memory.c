@@ -1,7 +1,8 @@
-#include "memory.h"
+#include <memory.h>
 #include <stdint.h>
 #include "logger.h"
 #include <stddef.h>
+#include <isr.h>
 
 extern void load_page_directory(uint32_t);
 extern void enable_paging();
@@ -11,9 +12,12 @@ extern void enable_paging();
 #define AL
 
 void boot_map_page_ia32(uint32_t*, uint32_t, uint32_t);
+void page_fault_handler(context_t*);
 
-/* Initializes paging */
 void init_paging(void) {
+    /* Register page fault handler */
+    register_interrupt_handler(14, page_fault_handler);
+
     /* Clear the page directory by marking not present */
     for (unsigned int i = 0; i < 1024; i++) {
         page_directory[i] = 0x00000002;
@@ -28,7 +32,12 @@ void init_paging(void) {
         boot_map_page_ia32(page_directory, (i * 4096) + KERNEL_START_PMA, (i * 4096) + KERNEL_START_PMA);
     }
 
+    /* Identity map the VGA buffer so that we can still write to
+       the VGA terminal without immediately page faulting */
+    boot_map_page_ia32(page_directory, 0xb8000, 0xb8000);
+
     /* Map a pool of memory for the memory allocator */
+    // TODO:
 
     /* Load the page directory and initalize paging */
     load_page_directory((uint32_t) page_directory);
@@ -49,4 +58,9 @@ void boot_map_page_ia32(uint32_t* kernel_page_directory, uint32_t virtual_addres
     uint32_t page_table_index = virtual_address >> 12 & 0x03FF;
 
     page_table[page_table_index] = physical_address | 3; // supervisor, r/w, present
+}
+
+void page_fault_handler(context_t* context) {
+    logf("[PANIC] Page fault, hanging\n");
+    while(1);
 }
