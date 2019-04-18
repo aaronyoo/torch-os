@@ -10,6 +10,7 @@
 #include <timer.h>
 #include <keyboard.h>
 #include <memory.h>
+#include <panic.h>
 #include "multiboot.h"
 
 void kmain(multiboot_info_t* mbd, uint32_t magic) {
@@ -19,7 +20,7 @@ void kmain(multiboot_info_t* mbd, uint32_t magic) {
    /* Check if the bootloader magic is correct */
    if (magic != MULTIBOOT_BOOTLOADER_MAGIC) {
       logf("Magic is incorrect...: %x\n", magic);
-      while(1); // TODO: change to panic
+      panic("Kernel Panic due to Incorrect Magic");
    }
 
    logf("mbd->flags: %x\n", mbd->flags);

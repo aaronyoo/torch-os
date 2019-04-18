@@ -3,6 +3,7 @@
 #include "logger.h"
 #include <stddef.h>
 #include <isr.h>
+#include <panic.h>
 
 extern void load_page_directory(uint32_t);
 extern void enable_paging();
@@ -50,8 +51,7 @@ void boot_map_page_ia32(uint32_t* kernel_page_directory, uint32_t virtual_addres
     if (!(page_directory_entry & 0x1)) {
         logf("[PANIC] Trying to access page index: %x", page_directory_index);
         logf("Address %x", virtual_address);
-        logf("[PANIC] Page Table not Present\n");
-        while (1);
+        panic("Page Table Not Present");
     }
 
     uint32_t* page_table = (uint32_t *) (page_directory_entry & 0xFFFFF000);
