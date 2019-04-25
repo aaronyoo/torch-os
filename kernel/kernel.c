@@ -43,7 +43,6 @@ void kmain(multiboot_info_t* mbd, uint32_t magic) {
                map->len_lower,
                map->type);
       }
-
    }
 
    if (mbd->flags & (1 << 7)) {

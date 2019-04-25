@@ -84,10 +84,10 @@ void init_page_frame_allocator() {
 
     /* Make sure the allocator starts and ends at a page aligned address */
     if (ALLOCATOR_AREA_START % PAGE_SIZE != 0) {
-        panic("Allocator does not start at a page aligned address!");
+        panic("Page Frame Allocator does not start at a page aligned address!");
     }
     if (ALLOCATOR_AREA_END % PAGE_SIZE != 0) {
-        panic("Allocator does not end at a page aligned address!");
+        panic("Page Frame Allocator does not end at a page aligned address!");
     }
 }
 
@@ -96,7 +96,14 @@ void init_page_frame_allocator() {
 void init_page_table_allocator() {
     /* This is a watermark allocator which works for now */
     // TODO: change this from a watermark allocator later
-
+    
+    /* Make sure that the allocator starts and ends at a page aligned address */
+    if (PAGE_TABLE_AREA_START % PAGE_SIZE != 0) {
+        panic("Page Table Allocator does not start at a page aligned address!");
+    }
+    if (PAGE_TABLE_AREA_END % PAGE_SIZE != 0) {
+        panic("Page Table Allocator does not end at a page aligned address!");
+    }
     next_page_table = PAGE_TABLE_AREA_START;
 }
 
