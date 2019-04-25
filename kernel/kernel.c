@@ -38,10 +38,8 @@ void kmain(multiboot_info_t* mbd, uint32_t magic) {
             (uint32_t) map < (mbd->mmap_addr + mbd->mmap_length);
             map = (multiboot_memory_map_t*)((uint32_t) map + map->size + sizeof(map->size))) 
       {
-         logf("base_addr_high = %x, base_addr_low = %x, length_high = %x, length_low = %x, type = %x\n",
-               map->addr_upper,
+         logf("base_addr= %x, length= %x, type = %x\n",
                map->addr_lower,
-               map->len_upper,
                map->len_lower,
                map->type);
       }
