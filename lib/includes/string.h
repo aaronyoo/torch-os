@@ -6,5 +6,6 @@
 void* memset(void*, int, size_t);
 size_t strlen(const char* str);
 void strrev(char* str);
+char* strcpy(char*, const char*);
 
 #endif
