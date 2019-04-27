@@ -11,7 +11,8 @@
 #include <keyboard.h>
 #include <memory.h>
 #include <panic.h>
-#include "multiboot.h"
+#include <multiboot.h>
+#include <tasking.h>
 
 void kmain(multiboot_info_t* mbd, uint32_t magic) {
    init_logger();
@@ -71,6 +72,9 @@ void kmain(multiboot_info_t* mbd, uint32_t magic) {
 
    init_paging();
    logf("Paging initialized\n");
+
+   init_tasking();
+   logf("Tasking initialized\n");
 
    __asm__ volatile("sti");
 
