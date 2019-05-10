@@ -208,7 +208,7 @@ void init_heap_allocator() {
 }
 
 void* heap_allocate(size_t size) {
-    logf("Heap allocation of size %u bytes at address %x\n", size, heap_current);
+    logf("Heap allocation of size %x bytes at address %x\n", size, heap_current);
     if (heap_current + size > HEAP_ALLOCATOR_AREA_END) {
         panic("Heap is overflowing! Cannot allocate!");
     }
@@ -220,7 +220,7 @@ void* heap_allocate(size_t size) {
     }
 
     /* Clear the memory before allocating */
-    memset(heap_current, 0, size);
+    memset((void*) heap_current, 0, size);
 
     uint32_t ret = heap_current;
     heap_current += size;
