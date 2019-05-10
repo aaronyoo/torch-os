@@ -5,6 +5,7 @@
 #include <isr.h>
 #include <panic.h>
 #include <string.h>
+#include <stdbool.h>
 
 #define PAGE_SIZE 4096
 
@@ -184,8 +185,19 @@ void* heap_allocate(size_t size) {
 }
 
 //-----------------------------------------------------------------------------
-// Memory Management Functions
+// Page Directory and Page Table Functions
 //-----------------------------------------------------------------------------
+page_directory_entry new_page_directory_entry() {
+    // Return a template for a new page_directory_entry with
+    // some sane and controllable defaults
+    return 0x00000000; // default to supervisor
+} 
+uint32_t* get_page_table_address(page_directory_entry entry) { return (uint32_t*) (entry & 0xFFFFF000); }
+bool is_present(page_directory_entry entry) { return entry & (1 << 0); }
+void set_present(uint32_t* entry) { (*entry) |= (1 << 0); }
+void set_read_write(uint32_t* entry) { (*entry) |= (1 << 1); }
+void set_user_mode(uint32_t* entry) { (*entry) |= (1 << 2); }
+
 
 void identity_map_range(uint32_t* kernel_page_directory, uint32_t start_address, uint32_t end_address) {
     // Identity map the range defined by [start_address, end_address)
@@ -195,10 +207,18 @@ void identity_map_range(uint32_t* kernel_page_directory, uint32_t start_address,
 }
 
 void map_page(uint32_t* kernel_page_directory, uint32_t virtual_address, uint32_t physical_address) {
-    uint32_t page_directory_index = virtual_address >> 22;
-    uint32_t page_directory_entry = *(kernel_page_directory + page_directory_index);
+    // Check that both the virtual address and the physical address are page aligned
+    if (virtual_address % PAGE_SIZE != 0) {
+        panic("Trying to map a virtual address that is not page aligned!");
+    }
+    if (physical_address % PAGE_SIZE != 0) {
+        panic("Trying to map a physical address that is not page aligned!");
+    }
 
-    if (!(page_directory_entry & 0x1)) {
+    int page_directory_index = virtual_address >> 22;
+    page_directory_entry pde = *(kernel_page_directory + page_directory_index);
+
+    if (!is_present(pde)) {
         // Page table is not present so we need to grab a new page table
         // and put it into the correct spot
         logf("Page table not present for virtual address: %x\n", virtual_address);
@@ -209,13 +229,16 @@ void map_page(uint32_t* kernel_page_directory, uint32_t virtual_address, uint32_
         *(kernel_page_directory + page_directory_index) = ((uint32_t) new_page_table) | 3; 
 
         // Put the new page table in the page directory
-        page_directory_entry = *(kernel_page_directory + page_directory_index) ;
+        pde = *(kernel_page_directory + page_directory_index) ;
     }
 
-    uint32_t* page_table = (uint32_t *) (page_directory_entry & 0xFFFFF000);
+    uint32_t* page_table = get_page_table_address(pde);
     uint32_t page_table_index = virtual_address >> 12 & 0x03FF;
 
-    page_table[page_table_index] = physical_address | 3; // supervisor, r/w, present
+    // Set present and read write for the physical address
+    set_present(&physical_address);
+    set_read_write(&physical_address);
+    page_table[page_table_index] = physical_address;
 }
 
 void page_fault_handler(context_t* context) {

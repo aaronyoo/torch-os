@@ -131,7 +131,7 @@ void init_keyboard() {
     keymap[1][0x13] = 'R';
     keymap[1][0x1f] = 'S';
     keymap[1][0x14] = 'T';
-    keymap[1][0116] = 'U';
+    keymap[1][0x4e] = 'U';
     keymap[1][0x2f] = 'V';
     keymap[1][0x11] = 'W';
     keymap[1][0x2d] = 'X';

@@ -111,7 +111,7 @@ static void print_serial_unsigned_decimal(uint32_t n) {
         n /= 10;
         pos++;
     }
-    pos = '\0';
+    s[pos] = '\0';
 
     // now the number will be reversed so we need to reverse it again
     strrev(s);

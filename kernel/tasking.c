@@ -5,7 +5,7 @@
 #include <logger.h>
 #include <stddef.h>
 
-extern switch_to_task(process_t* other);
+extern void switch_to_task(process_t* other);
 
 process_t* prev;
 process_t* curr;
@@ -20,28 +20,28 @@ void switch_to_task_wrapper(process_t* other) {
     switch_to_task(other);
 }
 
-void task1() {
+void task1(void) {
     while (1) {
         logf("Running task 1\n");
         switch_to_task_wrapper(another);
     }
 }
 
-void task2() {
+void task2(void) {
     while (1) {
         logf("Running task 2\n");
         switch_to_task_wrapper(other);
     }
 }
 
-uint32_t create_kernel_task(uint32_t* start_eip) {
+process_t* create_kernel_task(void (*start_eip)(void)) {
     process_t* task = halloc(sizeof(process_t));
     task->pid = next_available_pid++;
     strcpy(task->task_name, "name");
     uint32_t* stack_area = halloc(4096);
     task->kernel_stack_top = stack_area + 1023; // change later, have to worry about memory corruption
     logf("The address of the other task stack: %x\n", task->kernel_stack_top);
-    task->page_directory = &page_directory; // the new task will have the same page directory
+    task->page_directory = (uint32_t) &page_directory; // the new task will have the same page directory
     task->next_task = NULL;
     task->state = 0;
 
@@ -49,10 +49,10 @@ uint32_t create_kernel_task(uint32_t* start_eip) {
     *task->kernel_stack_top = (uint32_t) start_eip;
     task->kernel_stack_top -= 4; // decrement for ebp edi esi ebx
 
-    return (uint32_t) task;
+    return task;
 }
 
-void init_tasking() {
+void init_tasking(void) {
     logf("Printing the structure of the process_t struct:\n");
     logf("\tPid: %x\n", offsetof(process_t, pid));
     logf("\tTask Name: %x\n", offsetof(process_t, task_name));
@@ -69,15 +69,15 @@ void init_tasking() {
     curr->pid = next_available_pid++;
     strcpy(curr->task_name, "kernel");
     curr->kernel_stack_top = 0; // change later
-    curr->page_directory = &page_directory;
+    curr->page_directory = (uint32_t) &page_directory;
     curr->next_task = NULL;
     curr->state = 0;
 
     logf("Current pid: %x\n", curr->pid);
 
     // Create task1
-    other = create_kernel_task((uint32_t*) task1);
-    another = create_kernel_task((uint32_t*) task2);
+    other = create_kernel_task(task1);
+    another = create_kernel_task(task2);
     logf("The address of the other task structure is: %x\n", other);
     switch_to_task_wrapper(other);
 }
