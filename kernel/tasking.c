@@ -48,9 +48,6 @@ uint32_t create_kernel_task(uint32_t* start_eip) {
     // Make sure to place return eip on the top of the kernel stack
     *task->kernel_stack_top = (uint32_t) start_eip;
     task->kernel_stack_top -= 4; // decrement for ebp edi esi ebx
-    logf("The address of the other task stack: %x\n", task->kernel_stack_top);
-    logf("Start eip of new task %x\n", task->kernel_stack_top);
-    logf("Should be %x\n", (uint32_t) task1);
 
     return (uint32_t) task;
 }
