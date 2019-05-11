@@ -11,13 +11,13 @@
 //     uint32_t eax, ebx, ecx, edx, esi, edi, esp, ebp, eip;
 // } registers_t;
 
-typedef struct {
+typedef struct _process_t {
     uint32_t pid;
     char task_name[MAX_PROCESS_NAME_LENGTH];
 
     uint32_t* kernel_stack_top;
     uint32_t page_directory;
-    uint32_t* next_task;
+    struct _process_t* next_task;
     uint32_t state;
 } process_t;
 

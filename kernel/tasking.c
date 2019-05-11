@@ -7,11 +7,12 @@
 
 extern void switch_to_task(process_t* other);
 
+// Pointers for task control block linked list
 process_t* prev;
 process_t* curr;
-process_t* other; // temporary
-process_t* another;
-process_t* tasks[20]; // currently only support 20 tasks
+process_t* first = NULL;
+process_t* last = NULL;
+
 uint32_t next_available_pid = 0; // only grows linearly upward
 
 void switch_to_task_wrapper(process_t* other) {
@@ -20,18 +21,37 @@ void switch_to_task_wrapper(process_t* other) {
     switch_to_task(other);
 }
 
+static void yield(void) {
+    switch_to_task_wrapper(curr->next_task);
+}
+
 void task1(void) {
     while (1) {
         logf("Running task 1\n");
-        switch_to_task_wrapper(another);
+        yield();
     }
 }
 
 void task2(void) {
     while (1) {
         logf("Running task 2\n");
-        switch_to_task_wrapper(other);
+        yield();
     }
+}
+
+static void add_task(process_t* proc) {
+    if (first == NULL) {
+        // There are no tasks added yet so add it in front
+        first = proc;
+        last = proc;
+        return;
+    }
+
+    // Insert the task between last and first
+    last->next_task = proc;
+    proc->next_task = first;
+
+    last = proc;
 }
 
 process_t* create_kernel_task(void (*start_eip)(void)) {
@@ -61,23 +81,25 @@ void init_tasking(void) {
     logf("\tNext Task: %x\n", offsetof(process_t, next_task));
     logf("\tState %x\n", offsetof(process_t, state));
 
-    memset(tasks, 0, sizeof(tasks));
-    tasks[0] = curr; // kernel task is the first task
+    // Build a process control block for the running process
+    process_t* kernel_task = halloc(sizeof(process_t));
+    kernel_task->pid = next_available_pid++;
+    strcpy(kernel_task->task_name, "kernel");
+    kernel_task->kernel_stack_top = 0; // change later
+    kernel_task->page_directory = (uint32_t) &page_directory;
+    kernel_task->next_task = NULL;
+    kernel_task->state = 0;
 
-    /* Build a process control block for the running process */
-    curr = halloc(sizeof(process_t));
-    curr->pid = next_available_pid++;
-    strcpy(curr->task_name, "kernel");
-    curr->kernel_stack_top = 0; // change later
-    curr->page_directory = (uint32_t) &page_directory;
-    curr->next_task = NULL;
-    curr->state = 0;
+    // This task is the current task
+    curr = kernel_task;
 
-    logf("Current pid: %x\n", curr->pid);
+    // Add all the tasks to the scheduler
+    add_task(kernel_task);
+    add_task(create_kernel_task(task1));
+    add_task(create_kernel_task(task2));
 
-    // Create task1
-    other = create_kernel_task(task1);
-    another = create_kernel_task(task2);
-    logf("The address of the other task structure is: %x\n", other);
-    switch_to_task_wrapper(other);
+    while(1) {
+        logf("Running task 0\n");
+        yield();
+    }
 }
