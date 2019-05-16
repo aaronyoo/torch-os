@@ -4,25 +4,37 @@
 #include <string.h>
 #include <logger.h>
 #include <stddef.h>
+#include <timer.h>
 
-extern void switch_to_task(process_t* other);
+extern void switch_to_task_stub(process_t* other);
 
 // Pointers for task control block linked list
-process_t* prev;
-process_t* curr;
+process_t* previous_task;
+process_t* current_task;
 process_t* first = NULL;
 process_t* last = NULL;
 
+// Counter for time accounting
+uint32_t last_time = 0;
+
 uint32_t next_available_pid = 0; // only grows linearly upward
 
-void switch_to_task_wrapper(process_t* other) {
-    prev = curr;
-    curr = other;
-    switch_to_task(other);
+void update_time(void) {
+    uint32_t current_time = read_timer();
+    uint32_t elapsed = elapsed_time(last_time, current_time);
+    last_time = current_time;
+    current_task->time_used += elapsed;
+}
+
+void switch_to_task(process_t* other) {
+    update_time();
+    previous_task = current_task;
+    current_task = other;
+    switch_to_task_stub(other);
 }
 
 static void yield(void) {
-    switch_to_task_wrapper(curr->next_task);
+    switch_to_task(current_task->next_task);
 }
 
 void task1(void) {
@@ -39,7 +51,7 @@ void task2(void) {
     }
 }
 
-static void add_task(process_t* proc) {
+void add_task(process_t* proc) {
     if (first == NULL) {
         // There are no tasks added yet so add it in front
         first = proc;
@@ -90,8 +102,8 @@ void init_tasking(void) {
     kernel_task->next_task = NULL;
     kernel_task->state = 0;
 
-    // This task is the current task
-    curr = kernel_task;
+    // This task is the current_taskent task
+    current_task = kernel_task;
 
     // Add all the tasks to the scheduler
     add_task(kernel_task);
@@ -100,6 +112,7 @@ void init_tasking(void) {
 
     while(1) {
         logf("Running task 0\n");
+        logf("Ticks: %u\n", current_task->time_used);
         yield();
     }
 }

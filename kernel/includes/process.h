@@ -19,6 +19,7 @@ typedef struct _process_t {
     uint32_t page_directory;
     struct _process_t* next_task;
     uint32_t state;
+    uint32_t time_used;
 } process_t;
 
 #endif

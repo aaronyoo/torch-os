@@ -4,14 +4,29 @@
 #include <logger.h>
 #include <tty.h>
 
-uint32_t tick = 0;
+uint32_t ticks = 0;
+
+uint32_t read_timer(void) {
+   return ticks;
+}
+
+// Returns the number of ticks that have elapsed in the interval
+uint32_t elapsed_time(uint32_t start, uint32_t end) {
+   if (end >= start) {
+      // No overflow
+      return end - start;
+   } else {
+      // Handle overflow
+      return UINT64_MAX - start + end;
+   }
+}
 
 static void timer_callback(context_t* context)
 {
-   tick++;
-   if (tick % TIMER_FREQUENCY == 0) {
-      terminal_print("One second has passed...\n");
-      tick = 0;
+   ticks++;
+   if (ticks % TIMER_FREQUENCY == 0) {
+      terminal_print("One second has passed...: \n");
+      logf("Tick: %u\n", ticks);
    }
 }
 
