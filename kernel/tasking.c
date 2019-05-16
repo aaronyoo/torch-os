@@ -75,7 +75,11 @@ void task2(void) {
     }
 }
 
-process_t* create_kernel_task(void (*start_eip)(void)) {
+// Creates a kernel task given a name and function pointer
+//      Having no function pointer signals that there is no
+//      stack setup needed. NULL should really only be used
+//      for the initial kernel thread.
+process_t* create_kernel_task(char* name, void (*start_eip)(void)) {
     process_t* task = halloc(sizeof(process_t));
     task->pid = next_available_pid++;
     strcpy(task->task_name, "name");
@@ -84,11 +88,13 @@ process_t* create_kernel_task(void (*start_eip)(void)) {
     logf("The address of the other task stack: %x\n", task->kernel_stack_top);
     task->page_directory = (uint32_t) &page_directory; // the new task will have the same page directory
     task->next_task = NULL;
-    task->state = 0;
+    task->state = 1; // Ready to run by default
 
-    // Make sure to place return eip on the top of the kernel stack
-    *task->kernel_stack_top = (uint32_t) start_eip;
-    task->kernel_stack_top -= 4; // decrement for ebp edi esi ebx
+    if (start_eip != NULL) {
+        // Make sure to place return eip on the top of the kernel stack
+        *task->kernel_stack_top = (uint32_t) start_eip;
+        task->kernel_stack_top -= 4; // decrement for ebp edi esi ebx
+    }
 
     return task;
 }
@@ -103,21 +109,15 @@ void init_tasking(void) {
     logf("\tState %x\n", offsetof(process_t, state));
 
     // Build a process control block for the running process
-    process_t* kernel_task = halloc(sizeof(process_t));
-    kernel_task->pid = next_available_pid++;
-    strcpy(kernel_task->task_name, "kernel");
-    kernel_task->kernel_stack_top = 0; // change later
-    kernel_task->page_directory = (uint32_t) &page_directory;
-    kernel_task->next_task = NULL;
-    kernel_task->state = 0;
+    process_t* kernel_task = create_kernel_task("kernel", NULL);
 
-    // This task is the current_taskent task
+    // This task is the current task
     current_task = kernel_task;
 
     // Add all the tasks to the scheduler
     enqueue_task(kernel_task);
-    enqueue_task(create_kernel_task(task1));
-    enqueue_task(create_kernel_task(task2));
+    enqueue_task(create_kernel_task("task1", task1));
+    enqueue_task(create_kernel_task("task2", task2));
 
     while(1) {
         logf("Running task 0\n");
