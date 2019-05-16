@@ -61,8 +61,11 @@ void init_pic() {
 	outb(PIC2_DATA, ICW4_8086);
 	io_wait();
 
-	outb(PIC1_DATA, 0xfd);
+	// Masks
+	// 0xfd, 0xff for all filter except keyboard
+	// 0x00, 0x00 for no filtering
+	outb(PIC1_DATA, 0x00);
 	io_wait();
-	outb(PIC2_DATA, 0xff);
+	outb(PIC2_DATA, 0x00);
 	io_wait();
 }

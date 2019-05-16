@@ -2,36 +2,35 @@
 #include <isr.h>
 #include <io.h>
 #include <logger.h>
+#include <tty.h>
 
 uint32_t tick = 0;
 
 static void timer_callback(context_t* context)
 {
    tick++;
-   logf("Tick %u\n", tick); 
-   // TODO: something is wrong here but not critical
-   // Logf prints weird characters followed by the correct number
-   // Does it have to do with size of uint32_t ?
+   if (tick % TIMER_FREQUENCY == 0) {
+      terminal_print("One second has passed...\n");
+      tick = 0;
+   }
 }
 
 void init_timer(uint32_t frequency)
 {
-   // Firstly, register our timer callback.
+   // Register timer callback
    register_interrupt_handler(32, &timer_callback);
 
-   // The value we send to the PIT is the value to divide it's input clock
-   // (1193180 Hz) by, to get our required frequency. Important to note is
-   // that the divisor must be small enough to fit into 16-bits.
+   // Calculate the correct divisor to get our frequency
    uint32_t divisor = 1193180 / frequency;
 
-   // Send the command byte.
+   // Send the command byte
    outb(0x43, 0x36);
 
-   // Divisor has to be sent byte-wise, so split here into upper/lower bytes.
+   // Divisor has to be sent byte-wise, so split here into upper/lower bytes
    uint8_t l = (uint8_t)(divisor & 0xFF);
    uint8_t h = (uint8_t)( (divisor>>8) & 0xFF );
 
-   // Send the frequency divisor.
+   // Send the frequency divisor
    outb(0x40, l);
    outb(0x40, h);
 }
