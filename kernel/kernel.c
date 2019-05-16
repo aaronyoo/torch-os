@@ -72,10 +72,12 @@ void kmain(multiboot_info_t* mbd, uint32_t magic) {
    init_timer(TIMER_FREQUENCY);
    logf("Timer initialized\n");
 
-   // init_tasking();
-   // logf("Tasking initialized\n");
-
+   // Need to enable interrupts before tasking so that
+   // we can receive timer interrupts
    __asm__ volatile("sti");
+
+   init_tasking();
+   logf("Tasking initialized\n");
 
    while(1) {
       
