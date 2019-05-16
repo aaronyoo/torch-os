@@ -11,13 +11,27 @@ extern void switch_to_task_stub(process_t* other);
 // Pointers for task control block linked list
 process_t* previous_task;
 process_t* current_task;
-process_t* first = NULL;
-process_t* last = NULL;
+process_t* head = NULL;
+process_t* tail = NULL;
 
 // Counter for time accounting
 uint32_t last_time = 0;
 
 uint32_t next_available_pid = 0; // only grows linearly upward
+
+void enqueue_task(process_t* proc) {
+    if (head == NULL) {
+        // There are no tasks added yet so add it in front
+        head = proc;
+        tail = proc;
+        return;
+    }
+
+    // Insert the task at the end of the list
+    tail->next_task = proc;
+    proc->next_task = NULL;
+    tail = proc;
+}
 
 void update_time(void) {
     uint32_t current_time = read_timer();
@@ -33,37 +47,32 @@ void switch_to_task(process_t* other) {
     switch_to_task_stub(other);
 }
 
-static void yield(void) {
-    switch_to_task(current_task->next_task);
+static void schedule(void) {
+    if (current_task->next_task != NULL) {
+        // Move the current task to the back and set the state
+        // to READY_TO_RUN
+        process_t* next_task = current_task->next_task;
+
+        head = current_task->next_task;
+        current_task->state = READY_TO_RUN;
+        enqueue_task(current_task);
+
+        switch_to_task(next_task);
+    }
 }
 
 void task1(void) {
     while (1) {
         logf("Running task 1\n");
-        yield();
+        schedule();
     }
 }
 
 void task2(void) {
     while (1) {
         logf("Running task 2\n");
-        yield();
+        schedule();
     }
-}
-
-void add_task(process_t* proc) {
-    if (first == NULL) {
-        // There are no tasks added yet so add it in front
-        first = proc;
-        last = proc;
-        return;
-    }
-
-    // Insert the task between last and first
-    last->next_task = proc;
-    proc->next_task = first;
-
-    last = proc;
 }
 
 process_t* create_kernel_task(void (*start_eip)(void)) {
@@ -106,13 +115,13 @@ void init_tasking(void) {
     current_task = kernel_task;
 
     // Add all the tasks to the scheduler
-    add_task(kernel_task);
-    add_task(create_kernel_task(task1));
-    add_task(create_kernel_task(task2));
+    enqueue_task(kernel_task);
+    enqueue_task(create_kernel_task(task1));
+    enqueue_task(create_kernel_task(task2));
 
     while(1) {
         logf("Running task 0\n");
         logf("Ticks: %u\n", current_task->time_used);
-        yield();
+        schedule();
     }
 }

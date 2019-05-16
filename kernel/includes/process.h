@@ -5,6 +5,11 @@
 
 #define MAX_PROCESS_NAME_LENGTH 20
 
+// Definitions for process states
+#define RUNNING 0
+#define READY_TO_RUN 1
+#define BLOCKED 2
+
 // TODO: Possibly add back in later but right now we don't need
 //       to really save any registers.
 // typedef struct {
