@@ -56,6 +56,11 @@ void terminate_task(void) {
     // or other stuff like that. But you CANNOT free the kernel
     // memory because it is currently being used by the stack
 
+    // Error if the kernel task is terminated
+    if (current_task->pid == 0) {
+        panic("Attempt to terminate the kernel task!");
+    }
+
     process_t* next_task = current_task->next_task;
     ready_to_run.head = current_task->next_task;
     current_task->state = TERMINATED;
