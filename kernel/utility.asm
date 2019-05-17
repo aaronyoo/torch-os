@@ -60,11 +60,11 @@ switch_to_task_stub:
 
    ; TODO: maybe change the TSS.ESP0 field to change ring later
 ; Commenting switching page directories for now
- ;   mov ecx, cr3
-;    cmp eax, ecx
-;    je .doneVAS
-;    mov cr3, eax
-; .doneVAS:
+   mov ecx, cr3
+   cmp eax, ecx
+   je .doneVAS
+   mov cr3, eax
+.doneVAS:
 
    pop ebp
    pop edi
