@@ -27,14 +27,14 @@ extern void enable_paging();
 
 void init_page_frame_allocator();
 void init_page_table_allocator();
-void* allocate_page_frame(uint32_t);
+void* page_frame_allocate(uint32_t);
 void identity_map_range(uint32_t*, uint32_t, uint32_t);
 void map_page(uint32_t*, uint32_t, uint32_t);
 void page_fault_handler(context_t*);
 void init_heap_allocator();
 
 // TODO:
-// - Fix this bug uint32_t* random_page = allocate_page_frame(0x00900000);
+// - Fix this bug uint32_t* random_page = page_frame_allocate(0x00900000);
 //   I don't know why it page faults
 // - Change page table allocator from a watermark allocator later
 // - Change the page fault handler to actually do something instead of panic
@@ -44,9 +44,15 @@ void init_heap_allocator();
 // Global Variables and State
 //-----------------------------------------------------------------------------
 
-// Calculate the correct sized bitmap for page from allocator
-#define BITMAP_SIZE (PAGE_FRAME_ALLOCATOR_AREA_END - PAGE_FRAME_ALLOCATOR_AREA_START) / 4096 / 32  
-uint32_t bitmap[BITMAP_SIZE];
+// Calculate the correct sized page_frame_bitmap for page frame allocator
+// The 32 divisor is because we are using uint32_t for our bitmap
+#define PAGE_FRAME_BITMAP_SIZE (PAGE_FRAME_ALLOCATOR_AREA_END - PAGE_FRAME_ALLOCATOR_AREA_START) / PAGE_SIZE / 32
+uint32_t page_frame_bitmap[PAGE_FRAME_BITMAP_SIZE];
+
+// Calculate the correct sized page_table_bitmap for the page table allocator
+// The 32 divisor is because we are using uint32_t for our bitmap
+#define PAGE_TABLE_BITMAP_SIZE (PAGE_TABLE_AREA_END - PAGE_TABLE_AREA_START) / PAGE_SIZE / 32
+uint32_t page_table_bitmap[PAGE_TABLE_BITMAP_SIZE];
 
 // Global pointer for watermark page table allocator
 // Points to the next free page_table page
@@ -61,8 +67,8 @@ uint32_t heap_mapped;   // Points to the furthest heap address mapped
 //-----------------------------------------------------------------------------
 
 void init_page_frame_allocator() {
-    // Clear the bitmap (all pages are unmapped)
-    memset(bitmap, 0, sizeof(bitmap));
+    // Clear the page_frame_bitmap (all pages are unmapped)
+    memset(page_frame_bitmap, 0, sizeof(page_frame_bitmap));
 
     // Make sure the allocator starts and ends at a page aligned address
     if (PAGE_FRAME_ALLOCATOR_AREA_START % PAGE_SIZE != 0) {
@@ -73,23 +79,23 @@ void init_page_frame_allocator() {
     }
 }
 
-void* allocate_page_frame(uint32_t virtual_address) {
+void* page_frame_allocate(uint32_t virtual_address) {
     // Make sure the address is page aligned
     if (virtual_address % PAGE_SIZE != 0) {
         panic("Trying to allocate page frame at unaligned address!");
     }
 
-    // Find a free page using the bitmap
+    // Find a free page using the page_frame_bitmap
     int page_index = -1;
-    for (int i = 0; i < BITMAP_SIZE; i++) {
-        logf("Looking at bitmap %u: %x\n", i, bitmap[i]);
-        if (bitmap[i] != 0xFFFFFFFF) {
+    for (int i = 0; i < PAGE_FRAME_BITMAP_SIZE; i++) {
+        logf("Looking at page_frame_bitmap %u: %x\n", i, page_frame_bitmap[i]);
+        if (page_frame_bitmap[i] != 0xFFFFFFFF) {
             // There is an available page, scan the bits
             for (int j = 0; j < BIT_SIZE_OF_UINT32; j++) {
-                if (!(bitmap[i] & (1 << j))) {
+                if (!(page_frame_bitmap[i] & (1 << j))) {
                     // The current bit is set to 0 so we can allocate
                     page_index = i * BIT_SIZE_OF_UINT32 + j;
-                    bitmap[i] |= (1 << j);
+                    page_frame_bitmap[i] |= (1 << j);
                     break;
                 }
             }
@@ -114,11 +120,9 @@ void* allocate_page_frame(uint32_t virtual_address) {
 //-----------------------------------------------------------------------------
 
 void init_page_table_allocator() {
-    // The page table allocator take pre-mapped pages from the
-    // page table reserved area in order to resolve the chicken
-    // and egg problem that can sometimes come up when needing to
-    // allocate a new page table.
-    
+    // Clear the page table bitmap (all page tables are unmapped)
+    memset(page_table_bitmap, 0, sizeof(page_frame_bitmap));
+
     // Make sure that the allocator starts and ends at a page aligned address
     if (PAGE_TABLE_AREA_START % PAGE_SIZE != 0) {
         panic("Page Table Allocator does not start at a page aligned address!");
@@ -126,20 +130,35 @@ void init_page_table_allocator() {
     if (PAGE_TABLE_AREA_END % PAGE_SIZE != 0) {
         panic("Page Table Allocator does not end at a page aligned address!");
     }
-    next_page_table = PAGE_TABLE_AREA_START;
 }
 
-void* allocate_page_table() {
-    // Check to make sure we still have more preallocated page tables
-    if (next_page_table >= PAGE_TABLE_AREA_END) {
-        panic("Page table allocator has run out of space!");
+void* page_table_allocate(void) {
+    // Find a free page using the page table bitmap
+    int index = -1;
+    for (int i = 0; i < PAGE_TABLE_BITMAP_SIZE; i++) {
+        if (page_table_bitmap[i] != 0xFFFFFFFF) {
+            // There is a free page table, scan the bits
+            for (int j = 0; j < 32; j++) {
+                if (!(page_table_bitmap[i] & (1 << j))) {
+                    // The current bit is set to 0 so we can allocate
+                    index = i * BIT_SIZE_OF_UINT32 + j;
+                    page_table_bitmap[i] |= (1 << j);
+                    break;
+                }
+            }
+            break;
+        }
     }
 
-    // Allocate the next page table and increment watermark
-    uint32_t* page_table = (uint32_t*) next_page_table;
-    memset(page_table, 0, PAGE_SIZE);
-    next_page_table += PAGE_SIZE;
-    return page_table;
+    if (index == -1) {
+        // There are no free page tables left
+        panic("Trying to allocate page tables but no page tables left to allocate!");
+    }
+
+    // Since page tables are identity mapped, the virtual address and physical
+    // address are the same so we can return the physical address.
+    const uint32_t physical_address = PAGE_TABLE_AREA_START + (PAGE_SIZE * index);
+    return (uint32_t*) physical_address;
 }
 
 //-----------------------------------------------------------------------------
@@ -171,7 +190,7 @@ void* heap_allocate(size_t size) {
     // Allocate new pages for the heap on demand
     // When the current pointer passes the furthest mapped address
     while (heap_current + size > heap_mapped) {
-        allocate_page_frame(heap_mapped);
+        page_frame_allocate(heap_mapped);
         heap_mapped += PAGE_SIZE;
     }
 
@@ -193,8 +212,10 @@ page_directory_entry new_page_directory_entry() {
     return 0x00000000; // default to supervisor
 } 
 uint32_t* get_page_table_address(page_directory_entry entry) { return (uint32_t*) (entry & 0xFFFFF000); }
+uint32_t get_page_table_index(uint32_t virtual_address) { return virtual_address >> 12 & 0x03FF; }
 bool is_present(page_directory_entry entry) { return entry & (1 << 0); }
 void set_present(uint32_t* entry) { (*entry) |= (1 << 0); }
+void unset_present(uint32_t* entry) { (*entry) &= ~(1 << 0); }
 void set_read_write(uint32_t* entry) { (*entry) |= (1 << 1); }
 void set_user_mode(uint32_t* entry) { (*entry) |= (1 << 2); }
 
@@ -224,7 +245,7 @@ void map_page(uint32_t* kernel_page_directory, uint32_t virtual_address, uint32_
         logf("Page table not present for virtual address: %x\n", virtual_address);
         logf("Adding a new page table at page_directory_index: %x\n", page_directory_index);
 
-        uint32_t* new_page_table = allocate_page_table();
+        uint32_t* new_page_table = page_table_allocate();
         logf("New page table allocated at v_addr: %x\n", new_page_table);
         *(kernel_page_directory + page_directory_index) = ((uint32_t) new_page_table) | 3; 
 
@@ -241,13 +262,45 @@ void map_page(uint32_t* kernel_page_directory, uint32_t virtual_address, uint32_
     page_table[page_table_index] = physical_address;
 }
 
+void unmap_page(uint32_t* kernel_page_directory, uint32_t virtual_address) {
+    // Check that the virtual address is page aligned
+    if (virtual_address % PAGE_SIZE != 0) {
+        panic("Trying to unmap a virtual address that is not page aligned!");
+    }
+
+    int page_directory_index = virtual_address >> 22;
+    page_directory_entry pde = *(kernel_page_directory + page_directory_index);
+
+    // Make sure that the page directory entry is present
+    if (!(is_present(pde))) {
+        panic("Trying to unmap a virtual address that does not have a page directory entry!");
+    }
+
+    uint32_t* page_table = get_page_table_address(pde);
+    uint32_t page_table_index = get_page_table_index(virtual_address);
+
+    // Unset the present bit
+    uint32_t physical_address = page_table[page_table_index];
+
+    if (!is_present(physical_address)) {
+        panic("Trying to unmap a virtual address that has not been mapped yet!");
+    }
+
+    unset_present(&physical_address);
+    page_table[page_table_index] = physical_address;
+
+    // TODO: maybe I can free the page table by scanning all the other
+    // entries to see if they are present. Otherwise I may have to free
+    // page tables only when the page directory is freed or in a GC style
+}
+
 void page_fault_handler(context_t* context) {
     logf("[PANIC] Page fault, hanging\n");
     while(1);
 }
 
 void init_paging(void) {
-    logf("%x\n",BITMAP_SIZE);
+    logf("%x\n",PAGE_FRAME_BITMAP_SIZE);
 
     // Register page fault handler
     register_interrupt_handler(INTERRUPT_NUMBER_PAGE_FAULT, page_fault_handler);
