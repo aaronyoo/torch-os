@@ -15,6 +15,9 @@ all: build
 
 # Run the operating system on qemu
 run: all
+	qemu-system-i386 -m 1G -serial stdio -kernel $(BUILDDIR)/kernel.bin -initrd test.tar
+
+no-ramdisk: all
 	qemu-system-i386 -m 1G -serial stdio -kernel $(BUILDDIR)/kernel.bin
 
 monitor: all
