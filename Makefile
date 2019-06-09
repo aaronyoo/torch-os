@@ -10,12 +10,16 @@ CFLAGS := -nostdlib -ffreestanding -02 -g -Wall -Wextra
 
 OBJS = ${C_SOURCES:.c=.o}
 
+default: all
+	python3 initfs/make_initrd.py
+
 # Default build target
 all: build
 
 # Run the operating system on qemu
 run: all
-	qemu-system-i386 -m 1G -serial stdio -kernel $(BUILDDIR)/kernel.bin -initrd test.tar
+	python3 initfs/make_initrd.py
+	qemu-system-i386 -m 1G -serial stdio -kernel $(BUILDDIR)/kernel.bin -initrd test_initrd
 
 no-ramdisk: all
 	qemu-system-i386 -m 1G -serial stdio -kernel $(BUILDDIR)/kernel.bin
@@ -36,4 +40,4 @@ asm_objects:
 	nasm -f elf32 $(KERNELDIR)/logger.asm -o $(BUILDDIR)/logger.o
 
 clean:
-	rm -rf $(BUILDDIR)/*
+	rm -rf $(BUILDDIR)/* test_initrd

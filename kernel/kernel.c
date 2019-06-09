@@ -13,6 +13,7 @@
 #include <panic.h>
 #include <multiboot.h>
 #include <tasking.h>
+#include <filesystem.h>
 
 void check_multiboot_info(multiboot_info_t* mbd, uint32_t magic) {
    // Check if the bootloader magic is correct
@@ -65,6 +66,11 @@ void kmain(multiboot_info_t* mbd, uint32_t magic) {
    if (initrd_end > KERNEL_END) {
       panic("Ramdisk is bleeding past the kernel area!");
    }
+
+   init_filesystem(initrd_start, initrd_end);
+   logf("Filesystem Initialized\n");
+
+   panic("stop");
 
    init_gdt();
    logf("GDT initialized\n");
