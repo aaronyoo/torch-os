@@ -33,6 +33,7 @@ typedef struct {
     // TODO: make a list [I need a linked list]
     fs_dirent_t* head;
     uint32_t size;
+    fs_node_t* parent;
 } fs_directory_t;
 
 struct _fs_node_t {

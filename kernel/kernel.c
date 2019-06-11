@@ -78,6 +78,8 @@ void kmain(multiboot_info_t* mbd, uint32_t magic) {
 	init_pic();
    logf("PIC initialized\n");
 
+      init_timer(50);
+
    init_idt();
    logf("IDT initialized\n");
 
@@ -89,7 +91,7 @@ void kmain(multiboot_info_t* mbd, uint32_t magic) {
 
    init_paging();
    logf("Paging initialized\n");
-
+   
    init_timer(TIMER_FREQUENCY);
    logf("Timer initialized\n");
 

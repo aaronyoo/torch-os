@@ -38,7 +38,7 @@ uint32_t fs_write(fs_node_t *node, uint32_t offset, uint32_t size, uint8_t* buff
 }
 
 void fs_add_dirent(fs_node_t* directory, fs_node_t* file) {
-    logf("Name1: %s\n", file->name);
+    logf("Adding file %s to directory %s\n", file->name, directory->name);
 
     // Check that the nodes are of the correct type
     if (directory->type != FS_DIRECTORY) {
@@ -55,7 +55,7 @@ void fs_add_dirent(fs_node_t* directory, fs_node_t* file) {
         // The code here is a bit tricky, first allocate a new
         // directory entry and then use the current pointer. Not
         // doing this will break insertion.
-        directory->directory.head->node = kalloc(sizeof(fs_dirent_t));
+        directory->directory.head = kalloc(sizeof(fs_dirent_t));
         current = directory->directory.head;
         current->node = file;
         current->next = NULL;
@@ -65,6 +65,7 @@ void fs_add_dirent(fs_node_t* directory, fs_node_t* file) {
             current = current->next;
         }
         current->next = kalloc(sizeof(fs_dirent_t));
+        current = current->next;
         current->node = file;
         current->next = NULL;
     }
@@ -75,6 +76,7 @@ void fs_add_dirent(fs_node_t* directory, fs_node_t* file) {
 
 fs_node_t* fs_construct_node(char* name, fs_node_type_t type) {
     fs_node_t* node = kalloc(sizeof(fs_node_t));
+    memset(node->name, 0, sizeof(node->name));
     strcpy(node->name, name);
     node->type = type;
 
@@ -89,6 +91,7 @@ fs_node_t* fs_construct_node(char* name, fs_node_type_t type) {
     } else if (type == FS_DIRECTORY) {
         node->directory.head = NULL;
         node->directory.size = 0;
+        node->directory.parent = NULL;
     }
 
     // TODO: check the other node types here
@@ -98,18 +101,23 @@ fs_node_t* fs_construct_node(char* name, fs_node_type_t type) {
 
 void read_ramdisk(uint32_t initrd_start, uint32_t initrd_end) {
     uint32_t current = initrd_start;
-    // while (current < initrd_end) {
-        struct block* b = (struct block*) initrd_start;
+    while (current < initrd_end) {
+        struct block* b = (struct block*) current;
         char* contents = (char*) current + sizeof(struct block);
         logf("Size: %u\n", b->size);
         logf("Name: %s\n", b->name);
         logf("Contents: %s\n", (char *) contents);
-    // }
-    fs_node_t* temp = fs_construct_node(b->name, FS_FILE);
-    logf("%u\n", temp->file.allocated_size);
-    logf("%u\n", b->size);
-    fs_write(temp, 0, b->size, contents);
-    fs_add_dirent(root, temp);
+
+        fs_node_t* temp = fs_construct_node(b->name, FS_FILE);
+        logf("%u\n", temp->file.allocated_size);
+        logf("%u\n", b->size);
+        fs_write(temp, 0, b->size, contents);
+        fs_add_dirent(root, temp);
+
+        // increment the current pointer past the block and
+        // the content of the file
+        current += sizeof(struct block) + b->size;
+    }
 }
 
 void init_filesystem(uint32_t initrd_start, uint32_t initrd_end) {
@@ -117,10 +125,18 @@ void init_filesystem(uint32_t initrd_start, uint32_t initrd_end) {
     read_ramdisk(initrd_start, initrd_end);
     
     char test[100];
-    fs_read(root->directory.head->node, 0, 22, test);
-    logf("Filename: %s\n", root->directory.head->node->name);
-    logf("%s\n", test);
-    logf("Size: %u\n", root->directory.head->node->file.canonical_size);
+
+    logf("%x\n", root->directory.head);
+
+    fs_dirent_t* current = root->directory.head;
+    logf("%x\n", current);
+    while (current != NULL) {
+        fs_read(current->node, 0, current->node->file.canonical_size, test);
+        logf("Filename: %s\n", current->node->name);
+        logf("%s\n", test);
+        logf("Size: %u\n", current->node->file.canonical_size);
+        current = current->next;
+    }
 }
 
 //-----------------------------------------------------------------------------

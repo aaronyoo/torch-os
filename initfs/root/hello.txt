@@ -1,0 +1,3 @@
+This is another text file.
+This one should be named hello.txt.
+There should be a few newlines here.
