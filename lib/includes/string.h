@@ -8,5 +8,6 @@ size_t strlen(const char* str);
 void strrev(char* str);
 char* strcpy(char*, const char*);
 void* memcpy(void*, const void*, size_t);
+int strncmp(const char* s1, const char* s2, size_t n);
 
 #endif

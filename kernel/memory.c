@@ -102,6 +102,8 @@ void* page_frame_allocate(uint32_t virtual_address) {
     const uint32_t physical_address = PAGE_FRAME_ALLOCATOR_AREA_START + (PAGE_SIZE * page_index);
     map_page(page_directory, virtual_address, physical_address);
 
+    memset((void*) virtual_address, 0, PAGE_SIZE); // Initialize Page to Zeroes
+
     return (uint32_t*) virtual_address;
 }
 

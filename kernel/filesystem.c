@@ -21,6 +21,13 @@ struct block {
     char name[MAX_FILENAME_LENGTH];
 };
 
+//-----------------------------------------------------------------------------
+// General FS Functions
+//
+// These functions are agnostic of the underlying type of filesystem being used.
+// They are generally just wrappers that call an object of function pointers.
+//-----------------------------------------------------------------------------
+
 uint32_t fs_read(fs_node_t *node, uint32_t offset, uint32_t size, uint8_t* buffer) {
     if (node->read != NULL) {
         return node->read(node, offset, size, buffer);
@@ -100,18 +107,23 @@ fs_node_t* fs_construct_node(char* name, fs_node_type_t type) {
 }
 
 void read_ramdisk(uint32_t initrd_start, uint32_t initrd_end) {
+    logf("===== READING FROM RAMDISK =====\n");
     uint32_t current = initrd_start;
     while (current < initrd_end) {
         struct block* b = (struct block*) current;
         char* contents = (char*) current + sizeof(struct block);
-        logf("Size: %u\n", b->size);
         logf("Name: %s\n", b->name);
-        logf("Contents: %s\n", (char *) contents);
+        logf("\tSize: %u\n", b->size);
+        logf("\tContents: %s\n", (char *) contents);
 
         fs_node_t* temp = fs_construct_node(b->name, FS_FILE);
         logf("%u\n", temp->file.allocated_size);
         logf("%u\n", b->size);
         fs_write(temp, 0, b->size, contents);
+
+        // Add all the files in the ramdisk to root for now
+        // TODO: It is possible that we might want to change this later
+        //       once I support a better object file format.
         fs_add_dirent(root, temp);
 
         // increment the current pointer past the block and
@@ -126,16 +138,27 @@ void init_filesystem(uint32_t initrd_start, uint32_t initrd_end) {
     
     char test[100];
 
-    logf("%x\n", root->directory.head);
-
+    logf("==== Reading Root Directory ====\n");
     fs_dirent_t* current = root->directory.head;
-    logf("%x\n", current);
     while (current != NULL) {
         fs_read(current->node, 0, current->node->file.canonical_size, test);
         logf("Filename: %s\n", current->node->name);
-        logf("%s\n", test);
         logf("Size: %u\n", current->node->file.canonical_size);
+        logf("%s\n", test);
         current = current->next;
+    }
+
+    char test_data[5] = "Hello";
+    char test_buffer[5];
+    memset(test_buffer, 0, sizeof(test_buffer));
+    logf("==== Testing FS Write and Read Back ====\n");
+    fs_node_t* test_file = fs_construct_node("Test File", FS_FILE);
+    fs_write(test_file, 0, 5, test_data);
+    fs_read(test_file, 0, 5, test_buffer);
+    if (strncmp(test_data, test_buffer, 5) != 0) {
+        panic("FS Write and Read Back Test Failed\n");
+    } else {
+        logf("Test Passed!\n");
     }
 }
 
@@ -168,6 +191,9 @@ uint32_t ramdisk_read(fs_node_t *node, uint32_t offset, uint32_t size, uint8_t* 
     return size;
 }
 
+// Writes to a ramdisk node.
+//      Write the contents of buffer to the file
+//      It is the caller's responsibility to make sure that size and buffer are valid
 uint32_t ramdisk_write(fs_node_t *node, uint32_t offset, uint32_t size, uint8_t* buffer) {
     // Check that the node is actually a file
     if (node->type != FS_FILE) {

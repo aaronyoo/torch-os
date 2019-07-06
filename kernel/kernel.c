@@ -78,8 +78,6 @@ void kmain(multiboot_info_t* mbd, uint32_t magic) {
 	init_pic();
    logf("PIC initialized\n");
 
-      init_timer(50);
-
    init_idt();
    logf("IDT initialized\n");
 
