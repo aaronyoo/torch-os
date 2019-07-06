@@ -9,6 +9,7 @@ typedef struct _fs_node_t fs_node_t;
 // Constrain the declarations for read, write, open, and close operations
 typedef uint32_t (*fs_read_type_t)(fs_node_t*, uint32_t, uint32_t, uint8_t*);
 typedef uint32_t (*fs_write_type_t)(fs_node_t*, uint32_t, uint32_t, uint8_t*);
+typedef uint32_t (*fs_seek_type_t)(fs_node_t*, uint32_t);
 typedef void (*fs_open_type_t)(fs_node_t*);
 typedef void (*fs_close_type_t)(fs_node_t*);
 
@@ -18,6 +19,7 @@ typedef enum {
 } fs_node_type_t;
 
 typedef struct {
+    uint32_t offset;
     uint8_t* buffer;
     uint32_t canonical_size;
     uint32_t allocated_size;
@@ -43,6 +45,7 @@ struct _fs_node_t {
     // Use pointer to functions
     fs_read_type_t read;
     fs_write_type_t write;
+    fs_seek_type_t seek;
     fs_open_type_t open;
     fs_close_type_t close;
 

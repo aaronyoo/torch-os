@@ -7,11 +7,13 @@
 #include <string.h>
 
 #define DEFAULT_FILE_SIZE 256
+#define MAX(a,b) (((a)>(b))?(a):(b))
 
 fs_node_t* fs_construct_node(char* name, fs_node_type_t type);
-uint32_t fs_write(fs_node_t *node, uint32_t offset, uint32_t size, uint8_t* buffer);
+uint32_t fs_write(fs_node_t *node, uint32_t size, uint8_t* buffer);
 uint32_t ramdisk_read(fs_node_t *node, uint32_t offset, uint32_t size, uint8_t* buffer);
 uint32_t ramdisk_write(fs_node_t *node, uint32_t offset, uint32_t size, uint8_t* buffer);
+uint32_t ramdisk_seek(fs_node_t *node, uint32_t position);
 
 // Root of the filesystem
 fs_node_t* root = NULL;
@@ -28,19 +30,33 @@ struct block {
 // They are generally just wrappers that call an object of function pointers.
 //-----------------------------------------------------------------------------
 
-uint32_t fs_read(fs_node_t *node, uint32_t offset, uint32_t size, uint8_t* buffer) {
+uint32_t fs_read(fs_node_t *node, uint32_t size, uint8_t* buffer) {
     if (node->read != NULL) {
-        return node->read(node, offset, size, buffer);
+        // Read from the current offset of the file. It is the responsibility 
+        // of the specific individual file system to increment the offset.
+        return node->read(node, node->file.offset, size, buffer);
     } else {
         panic("fs_read function pointer not set!");
     }
 }
 
-uint32_t fs_write(fs_node_t *node, uint32_t offset, uint32_t size, uint8_t* buffer) {
+uint32_t fs_write(fs_node_t *node, uint32_t size, uint8_t* buffer) {
     if (node->write != NULL) {
-        return node->write(node, offset, size, buffer);
+        // Write to the current offset of the file. It is the responsibility
+        // of the specific file system to increment the offset.
+        return node->write(node, node->file.offset, size, buffer);
     } else {
         panic("fs_write function pointer not set!");
+    }
+}
+
+uint32_t fs_seek(fs_node_t *node, uint32_t position) {
+    if (node->seek != NULL) {
+        // Seek to the specified position. It is the responsibility of the
+        // specific filesystem to make sure that the offset is changed.
+        return node->seek(node, position);
+    } else {
+        panic("fs_seek function pointer not set!");
     }
 }
 
@@ -90,8 +106,10 @@ fs_node_t* fs_construct_node(char* name, fs_node_type_t type) {
     // Change this based on the filesystem
     node->read = ramdisk_read;
     node->write = ramdisk_write;
+    node->seek = ramdisk_seek;
 
     if (type == FS_FILE) {
+        node->file.offset = 0;
         node->file.buffer = kalloc(256);
         node->file.canonical_size = 0;
         node->file.allocated_size = 256;
@@ -119,7 +137,7 @@ void read_ramdisk(uint32_t initrd_start, uint32_t initrd_end) {
         fs_node_t* temp = fs_construct_node(b->name, FS_FILE);
         logf("%u\n", temp->file.allocated_size);
         logf("%u\n", b->size);
-        fs_write(temp, 0, b->size, contents);
+        fs_write(temp, b->size, contents);
 
         // Add all the files in the ramdisk to root for now
         // TODO: It is possible that we might want to change this later
@@ -141,7 +159,8 @@ void init_filesystem(uint32_t initrd_start, uint32_t initrd_end) {
     logf("==== Reading Root Directory ====\n");
     fs_dirent_t* current = root->directory.head;
     while (current != NULL) {
-        fs_read(current->node, 0, current->node->file.canonical_size, test);
+        fs_seek(current->node, 0);
+        fs_read(current->node, current->node->file.canonical_size, test);
         logf("Filename: %s\n", current->node->name);
         logf("Size: %u\n", current->node->file.canonical_size);
         logf("%s\n", test);
@@ -153,12 +172,18 @@ void init_filesystem(uint32_t initrd_start, uint32_t initrd_end) {
     memset(test_buffer, 0, sizeof(test_buffer));
     logf("==== Testing FS Write and Read Back ====\n");
     fs_node_t* test_file = fs_construct_node("Test File", FS_FILE);
-    fs_write(test_file, 0, 5, test_data);
-    fs_read(test_file, 0, 5, test_buffer);
+    fs_seek(test_file, 0);
+    fs_write(test_file, 5, test_data);
+    fs_seek(test_file, 0);
+    fs_read(test_file, 5, test_buffer);
     if (strncmp(test_data, test_buffer, 5) != 0) {
         panic("FS Write and Read Back Test Failed\n");
     } else {
         logf("Test Passed!\n");
+    }
+
+    if (test_file->file.offset != 5) {
+        panic("test_file does not have the correct offset!");
     }
 }
 
@@ -181,11 +206,15 @@ uint32_t ramdisk_read(fs_node_t *node, uint32_t offset, uint32_t size, uint8_t* 
 
     // Make sure we aren't being asked to read past the end of the file
     if (offset + size > node->file.canonical_size) {
+        logf("%u %u %u\n", offset, size, node->file.canonical_size);
         panic("Trying to RAMDISK read past the end of a file!");
     }
 
     // Read the data into the buffer
     memcpy(buffer, node->file.buffer + offset, size);
+
+    // Adjust the offset of the node that we just touched
+    node->file.offset = offset + size;
 
     // Return the number of bytes written
     return size;
@@ -212,11 +241,30 @@ uint32_t ramdisk_write(fs_node_t *node, uint32_t offset, uint32_t size, uint8_t*
         panic("Uh-oh");
     }
 
-    // Copy data and adjust canonical size
+    // Copy data and adjust size
     memcpy(node->file.buffer + offset, buffer, size);
-    node->file.canonical_size += size;
+    node->file.canonical_size = MAX(node->file.canonical_size, offset + size);
+
+    // Adjust the offset of the
+    node->file.offset = offset + size; 
 
     // Return the number of bytes written
     return size;
+}
+
+uint32_t ramdisk_seek(fs_node_t *node, uint32_t position) {
+    // Check that the node is actually a file
+    if (node->type != FS_FILE) {
+        panic("Trying to RAMDISK seek to a node that is not a file!");
+    }
+
+    // Check that the position is not greater than the file size
+    if (position > node->file.allocated_size || position < 0) {
+        panic("Position is invalid during RAMDISK seek!");
+    }
+
+    // Set position
+    node->file.offset = position;
+    return position;
 }
 
